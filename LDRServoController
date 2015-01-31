@@ -1,0 +1,72 @@
+/*
+  LDR SERVO CONTROLLER w/ input smoothing
+  Turns servo one way one time if the the smoothed (average) value from the photoresistor is 
+  lower than the closeThreshold and the otherway if it is higher than the openThreshold.  
+  This code was developed wiht the idea to use a photoresistor to control the opening and closing of blinds.
+
+  Smoothing
+  Reads repeatedly from an analog input, calculating a running average
+  and printing it to the computer.  Keeps a set number of samples (numSamples)
+  in an array andcontinually averages them.
+*/
+// Define the number of samples to keep track of.  The higher the number,
+// the more the readings will be smoothed, but the slower the output will
+// respond to the input.  Using a constant rather than a normal variable lets
+// use this value to determine the size of the readings array.
+#include <Servo.h>
+
+Servo serv;
+
+int closeThreshold = 200;   //controls the amount of light needed to close blinds. lower is darker higher is brighter DEFAULT=200
+int openThreshold = 400;    //controls the amount of light needed to open the blinds.  DEFAULT=400;
+
+const int numSamples = 20;
+
+int samples[numSamples];      // the readings from the analog input
+int i = 0;                  // the index of the current reading
+int total = 0;                  // the running total
+int average = 0;                // the average
+
+int mode;
+
+int LDR = A0;
+
+void setup()
+{
+  mode=1;
+  serv.attach(9);
+  Serial.begin(9600);                   
+  for (int thisSample = 0; thisSample < numSamples; thisSample++)
+    samples[thisSample] = 0;       
+}
+
+void loop() {
+  total= total - samples[i];          
+  samples[i] = analogRead(LDR); 
+  total= total + samples[i];       
+  i = i + 1;                    
+
+  if (i >= numSamples){              
+    i = 0;   
+  }    
+
+  // calculate the average:
+  average = total / numSamples;         
+  Serial.println(average);   
+  delay(1);       
+
+if(average>openThreshold && mode==1){
+  serv.write(179);
+  delay(500);
+  serv.write(90);
+  mode=2;
+}  
+
+if(average<closeThreshold  && mode==2){
+  serv.write(0);
+  delay(500);
+  serv.write(90);
+  mode=1;
+}
+
+}
